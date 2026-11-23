@@ -38,7 +38,7 @@ const categories = ['Tất cả', ...new Set(tips.map(t => t.data.category))];
       <input
         type="text"
         id="search-input"
-        placeholder="Gõ từ khóa tìm bí kỹ... (vd: nấu canh rau, rau ngót, súp lơ, rửa rau, luộc rau)"
+        placeholder="Gõ từ khóa tìm bí kỹ... (vd: rau, nấu canh rau, súp lơ, cải bó xôi...)"
         class="w-full py-3.5 pr-20 text-base bg-transparent border-0 outline-none text-[#37352f] dark:text-gray-100 placeholder-[#9b9a97] dark:placeholder-[#666666]"
         autocomplete="off"
         autofocus
@@ -167,7 +167,6 @@ const categories = ['Tất cả', ...new Set(tips.map(t => t.data.category))];
 
 <!-- Embedded Search Data & Script -->
 <script define:vars={{ tips }}>
-  // Simple, instant fuzzy search using lightweight keyword matching
   const searchInput = document.getElementById('search-input');
   const clearBtn = document.getElementById('clear-search');
   const cardsContainer = document.getElementById('cards-container');
@@ -179,14 +178,25 @@ const categories = ['Tất cả', ...new Set(tips.map(t => t.data.category))];
   let activeCategory = 'Tất cả';
   let searchQuery = '';
 
-  // Prepare searchable items
+  // Function to remove Vietnamese accents for fuzzy matching
+  function removeAccents(str) {
+    if (!str) return '';
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  }
+
+  // Prepare searchable items with full body content & unaccented variants
   const items = tips.map((tip) => {
     const rawSearchText = [
       tip.data.title,
       tip.data.description,
       tip.data.category,
       tip.data.tags.join(' '),
-      tip.data.quickTakeaways.join(' ')
+      tip.data.quickTakeaways.join(' '),
+      tip.body || ''
     ].join(' ').toLowerCase();
 
     return {
@@ -194,12 +204,14 @@ const categories = ['Tất cả', ...new Set(tips.map(t => t.data.category))];
       slug: tip.slug,
       category: tip.data.category,
       searchContent: rawSearchText,
+      searchContentNoAccent: removeAccents(rawSearchText),
     };
   });
 
   // Filter function
   function filterTips() {
-    const query = searchQuery.trim().toLowerCase();
+    // Strip leading / or # or spaces (e.g. "/rau" -> "rau")
+    let cleanQuery = searchQuery.trim().toLowerCase().replace(/^[\/\#\@\!\?\s]+/, '');
     let visibleCount = 0;
 
     cards.forEach((card) => {
@@ -210,10 +222,16 @@ const categories = ['Tất cả', ...new Set(tips.map(t => t.data.category))];
       const matchesCategory = activeCategory === 'Tất cả' || item.category === activeCategory;
       let matchesQuery = true;
 
-      if (query.length > 0) {
-        // Multi-word search matching: all words must be present in the content
-        const queryTerms = query.split(/\s+/).filter(Boolean);
-        matchesQuery = queryTerms.every(term => item.searchContent.includes(term));
+      if (cleanQuery.length > 0) {
+        // Multi-word search matching with both accented & unaccented support
+        const queryTerms = cleanQuery.split(/\s+/).filter(Boolean);
+        matchesQuery = queryTerms.every(term => {
+          const termNoAccent = removeAccents(term);
+          return (
+            item.searchContent.includes(term) ||
+            item.searchContentNoAccent.includes(termNoAccent)
+          );
+        });
       }
 
       if (matchesCategory && matchesQuery) {
@@ -232,7 +250,7 @@ const categories = ['Tất cả', ...new Set(tips.map(t => t.data.category))];
       noResults.classList.add('hidden');
     }
 
-    if (query.length > 0) {
+    if (searchQuery.trim().length > 0) {
       clearBtn?.classList.remove('hidden');
     } else {
       clearBtn?.classList.add('hidden');
@@ -270,12 +288,11 @@ const categories = ['Tất cả', ...new Set(tips.map(t => t.data.category))];
     });
   });
 
-  // Hotkey "/" to focus search
+  // Hotkey "/" to focus search without leaving a slash
   window.addEventListener('keydown', (e) => {
     if (e.key === '/' && document.activeElement !== searchInput) {
       e.preventDefault();
       searchInput?.focus();
-      searchInput?.select();
     }
   });
 </script>
