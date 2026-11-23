@@ -1,0 +1,281 @@
+---
+interface TipItem {
+  id: string;
+  slug: string;
+  data: {
+    title: string;
+    emoji: string;
+    description: string;
+    category: string;
+    tags: string[];
+    verified: boolean;
+    readTimeMinutes: number;
+    updatedDate: string;
+    quickTakeaways: string[];
+  };
+}
+
+interface Props {
+  tips: TipItem[];
+}
+
+const { tips } = Astro.props;
+
+// Categories list
+const categories = ['Tất cả', ...new Set(tips.map(t => t.data.category))];
+---
+
+<div class="space-y-6" id="search-container">
+  <!-- Prominent Search Bar (Notion Search style) -->
+  <div class="relative">
+    <div class="relative flex items-center shadow-sm rounded-xl border border-[#e2e1de] dark:border-[#333333] bg-[#fafaf9] dark:bg-[#202020] focus-within:border-[#999999] dark:focus-within:border-[#666666] focus-within:ring-2 focus-within:ring-[#e5e5e5] dark:focus-within:ring-[#333333] transition-all">
+      <div class="pl-4 pr-2 text-[#787774] dark:text-[#888888]">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      <input
+        type="text"
+        id="search-input"
+        placeholder="Gõ từ khóa tìm bí kỹ... (vd: nấu canh rau, rau ngót, súp lơ, rửa rau, luộc rau)"
+        class="w-full py-3.5 pr-20 text-base bg-transparent border-0 outline-none text-[#37352f] dark:text-gray-100 placeholder-[#9b9a97] dark:placeholder-[#666666]"
+        autocomplete="off"
+        autofocus
+      />
+
+      <div class="absolute right-3 flex items-center gap-1.5 pointer-events-none">
+        <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[11px] font-mono text-[#787774] dark:text-[#888888] bg-white dark:bg-[#2b2b2b] border border-[#e2e1de] dark:border-[#3a3a3a] rounded shadow-sm">/</kbd>
+      </div>
+
+      <button
+        id="clear-search"
+        class="hidden absolute right-3 p-1 rounded-full text-[#787774] hover:text-[#37352f] dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+        title="Xóa tìm kiếm"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Live Result Count indicator -->
+    <div class="flex items-center justify-between mt-2.5 px-1 text-xs text-[#787774] dark:text-[#888888]">
+      <span id="results-count">Hiển thị {tips.length} bí kỹ</span>
+      <span class="hidden sm:inline">Bấm vào bất kỳ bài nào để xem chi tiết ngay</span>
+    </div>
+  </div>
+
+  <!-- Category Filter Pills -->
+  {categories.length > 2 && (
+    <div class="flex flex-wrap gap-1.5 pt-1">
+      {categories.map((cat, idx) => (
+        <button
+          class={`category-pill text-xs px-3 py-1.5 rounded-lg border transition-all ${
+            idx === 0
+              ? 'bg-[#37352f] text-white border-[#37352f] dark:bg-gray-200 dark:text-gray-900 dark:border-gray-200 font-medium'
+              : 'bg-white dark:bg-[#202020] text-[#555] dark:text-[#aaa] border-[#e9e9e7] dark:border-[#2e2e2e] hover:bg-[#f7f6f3] dark:hover:bg-[#282828]'
+          }`}
+          data-category={cat}
+        >
+          {cat}
+        </button>
+      ))}
+    </div>
+  )}
+
+  <!-- Cards List -->
+  <div id="cards-container" class="space-y-4 pt-2">
+    {tips.map((tip) => (
+      <a
+        href={`/tips/${tip.slug}`}
+        class="tip-card block group p-5 rounded-xl border border-[#e9e9e7] dark:border-[#2b2b2b] bg-white dark:bg-[#1f1f1f] hover:border-[#b4b3b0] dark:hover:border-[#4d4d4d] hover:shadow-md transition-all duration-150"
+        data-id={tip.id}
+        data-title={tip.data.title}
+        data-category={tip.data.category}
+        data-tags={tip.data.tags.join(' ')}
+      >
+        <div class="flex items-start gap-4">
+          <!-- Big Notion Emoji Icon -->
+          <div class="w-12 h-12 shrink-0 rounded-xl bg-[#f7f6f3] dark:bg-[#282828] flex items-center justify-center text-2xl group-hover:scale-105 transition-transform border border-[#f0ede6] dark:border-[#333333]">
+            {tip.data.emoji}
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span class="text-xs px-2 py-0.5 rounded bg-[#f1f1ef] dark:bg-[#282828] text-[#5c5b57] dark:text-[#aaaaaa] font-medium">
+                {tip.data.category}
+              </span>
+              <span class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+                Thực nghiệm thành công
+              </span>
+              <span class="text-xs text-[#9b9a97] dark:text-[#666666] ml-auto">
+                {tip.data.readTimeMinutes} phút đọc
+              </span>
+            </div>
+
+            <!-- Title -->
+            <h2 class="text-lg font-semibold text-[#1f1f1f] dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              {tip.data.title}
+            </h2>
+
+            <!-- Short Description -->
+            <p class="text-sm text-[#5f5e5b] dark:text-[#b0b0b0] mt-1.5 line-clamp-2 leading-relaxed">
+              {tip.data.description}
+            </p>
+
+            <!-- Quick Takeaway Bullets Preview (Notion style highlight) -->
+            {tip.data.quickTakeaways && tip.data.quickTakeaways.length > 0 && (
+              <div class="mt-3.5 pt-3 border-t border-[#f1f1ef] dark:border-[#2a2a2a] grid sm:grid-cols-2 gap-2 text-xs text-[#444] dark:text-[#ccc]">
+                {tip.data.quickTakeaways.slice(0, 2).map((point) => (
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-amber-500 shrink-0 font-bold">⚡</span>
+                    <span class="line-clamp-1">{point}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <!-- Tags -->
+            {tip.data.tags && tip.data.tags.length > 0 && (
+              <div class="flex flex-wrap gap-1.5 mt-3">
+                {tip.data.tags.map((tag) => (
+                  <span class="text-[11px] text-[#787774] dark:text-[#999999] bg-[#f7f6f3] dark:bg-[#262626] px-2 py-0.5 rounded">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </a>
+    ))}
+
+    <!-- Empty State -->
+    <div id="no-results" class="hidden text-center py-16 px-4 border border-dashed border-[#e2e1de] dark:border-[#333333] rounded-2xl">
+      <div class="text-4xl mb-3">🔍</div>
+      <h3 class="text-base font-semibold text-[#37352f] dark:text-gray-200">Không tìm thấy bí kỹ nào phù hợp</h3>
+      <p class="text-sm text-[#787774] dark:text-[#888888] mt-1 max-w-sm mx-auto">
+        Hãy thử gõ từ khóa khác (vd: rau, luộc, rửa, súp lơ...) hoặc chọn "Tất cả" danh mục.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Embedded Search Data & Script -->
+<script define:vars={{ tips }}>
+  // Simple, instant fuzzy search using lightweight keyword matching
+  const searchInput = document.getElementById('search-input');
+  const clearBtn = document.getElementById('clear-search');
+  const cardsContainer = document.getElementById('cards-container');
+  const noResults = document.getElementById('no-results');
+  const resultsCount = document.getElementById('results-count');
+  const categoryPills = document.querySelectorAll('.category-pill');
+  const cards = Array.from(document.querySelectorAll('.tip-card'));
+
+  let activeCategory = 'Tất cả';
+  let searchQuery = '';
+
+  // Prepare searchable items
+  const items = tips.map((tip) => {
+    const rawSearchText = [
+      tip.data.title,
+      tip.data.description,
+      tip.data.category,
+      tip.data.tags.join(' '),
+      tip.data.quickTakeaways.join(' ')
+    ].join(' ').toLowerCase();
+
+    return {
+      id: tip.id,
+      slug: tip.slug,
+      category: tip.data.category,
+      searchContent: rawSearchText,
+    };
+  });
+
+  // Filter function
+  function filterTips() {
+    const query = searchQuery.trim().toLowerCase();
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      const id = card.dataset.id;
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      const matchesCategory = activeCategory === 'Tất cả' || item.category === activeCategory;
+      let matchesQuery = true;
+
+      if (query.length > 0) {
+        // Multi-word search matching: all words must be present in the content
+        const queryTerms = query.split(/\s+/).filter(Boolean);
+        matchesQuery = queryTerms.every(term => item.searchContent.includes(term));
+      }
+
+      if (matchesCategory && matchesQuery) {
+        card.style.display = 'block';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    // Update result count & empty state
+    resultsCount.textContent = `Hiển thị ${visibleCount} bí kỹ`;
+    if (visibleCount === 0) {
+      noResults.classList.remove('hidden');
+    } else {
+      noResults.classList.add('hidden');
+    }
+
+    if (query.length > 0) {
+      clearBtn?.classList.remove('hidden');
+    } else {
+      clearBtn?.classList.add('hidden');
+    }
+  }
+
+  // Input listener
+  searchInput?.addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    filterTips();
+  });
+
+  // Clear button
+  clearBtn?.addEventListener('click', () => {
+    if (searchInput) {
+      searchInput.value = '';
+      searchQuery = '';
+      searchInput.focus();
+      filterTips();
+    }
+  });
+
+  // Category filter click
+  categoryPills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      categoryPills.forEach((p) => {
+        p.classList.remove('bg-[#37352f]', 'text-white', 'border-[#37352f]', 'dark:bg-gray-200', 'dark:text-gray-900', 'dark:border-gray-200', 'font-medium');
+        p.classList.add('bg-white', 'dark:bg-[#202020]', 'text-[#555]', 'dark:text-[#aaa]', 'border-[#e9e9e7]', 'dark:border-[#2e2e2e]');
+      });
+      pill.classList.remove('bg-white', 'dark:bg-[#202020]', 'text-[#555]', 'dark:text-[#aaa]', 'border-[#e9e9e7]', 'dark:border-[#2e2e2e]');
+      pill.classList.add('bg-[#37352f]', 'text-white', 'border-[#37352f]', 'dark:bg-gray-200', 'dark:text-gray-900', 'dark:border-gray-200', 'font-medium');
+
+      activeCategory = pill.dataset.category || 'Tất cả';
+      filterTips();
+    });
+  });
+
+  // Hotkey "/" to focus search
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== searchInput) {
+      e.preventDefault();
+      searchInput?.focus();
+      searchInput?.select();
+    }
+  });
+</script>
